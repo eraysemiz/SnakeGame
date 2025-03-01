@@ -1,4 +1,3 @@
-import javax.naming.ldap.UnsolicitedNotification;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -6,25 +5,34 @@ import java.util.Random;
 
 public class GamePanel extends JPanel implements ActionListener {
 
-	static final int SCREEN_WIDTH = 600;
-	static final int SCREEN_HEIGHT = 600;
-	static final int UNIT_SIZE = 25;	// item boyutu, itemların boyutunu ayarlar
-	static final int GAME_UNITS = (SCREEN_HEIGHT * SCREEN_WIDTH) / UNIT_SIZE;	// MAX UNIT SAYISI
-	static final int DELAY = 100;		// oyun hızı
-	final int[] x = new int[GAME_UNITS]; // yılanın gövdesinin x koordinatları
-	final int[] y = new int[GAME_UNITS]; // yılanın gövdesinin y koordinatları
-	private int bodyParts = 6;
-	private int applesEaten = 0;
-	private int appleX;		// elma konumu
-	private int appleY;
-	private String direction = "RIGHT";
+	static final int SCREEN_WIDTH = 800;
+	static final int SCREEN_HEIGHT = 800;
+	static final int UNIT_SIZE = 25;
+	static final int GAME_UNITS = (SCREEN_WIDTH * SCREEN_HEIGHT) / UNIT_SIZE;
+	static final int DELAY = 75;
+
+	private Snake snake1;
+	private Snake snake2;
+	private boolean isTwoPlayerMode;
+
+	private int apple1X, apple1Y;
+	private int apple2X, apple2Y;
 	private boolean gameState = false;
-	Timer timer;
-	Random random;
 
+	private Timer timer;
+	private Random random;
 
-	public GamePanel() {
+	public GamePanel(boolean isTwoPlayerMode)
+	{
+		this.isTwoPlayerMode = isTwoPlayerMode;
 		random = new Random();
+
+		snake1 = new Snake(GAME_UNITS, UNIT_SIZE, "RIGHT");
+		if (isTwoPlayerMode)
+		{
+			snake2 = new Snake(GAME_UNITS, UNIT_SIZE, "LEFT");
+		}
+
 		this.setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
 		this.setBackground(Color.black);
 		this.setFocusable(true);
@@ -51,102 +59,63 @@ public class GamePanel extends JPanel implements ActionListener {
 	{
 		if (gameState)
 		{
-			for (int i = 0; i < SCREEN_HEIGHT / UNIT_SIZE; i++)
-			{
-				g.drawLine(i * UNIT_SIZE, 0, i * UNIT_SIZE, SCREEN_HEIGHT);
-				g.drawLine(0,i * UNIT_SIZE, SCREEN_WIDTH , i * UNIT_SIZE);
-			}
+			// 1. Elmayı çiz
 			g.setColor(Color.red);
-			g.fillOval(appleX, appleY, UNIT_SIZE, UNIT_SIZE);
+			g.fillOval(apple1X, apple1Y, UNIT_SIZE, UNIT_SIZE);
 
-			for (int i = 0; i < bodyParts; i++)
+			// 2. elmayı çiz
+			if (isTwoPlayerMode)
 			{
-				if (i == 0) 	// yılanın kafası
-				{
-					g.setColor(Color.green);
-					g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
-				}
-				else		// yılanın gövdesi
-				{
-					g.setColor(new Color(45, 180, 0));
-					g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
-				}
+				g.setColor(Color.orange);
+				g.fillOval(apple2X, apple2Y, UNIT_SIZE, UNIT_SIZE);
 			}
+
+			// 1. Yılanı çiz
+			drawSnake(g, snake1, Color.green, new Color(45, 180, 0));
+
+			// 2. yılanı çiz
+			if (isTwoPlayerMode)
+			{
+				drawSnake(g, snake2, Color.blue, new Color(0, 0, 200));
+			}
+
+			// Skoru göster
 			g.setColor(Color.red);
 			g.setFont(new Font("Ink Free", Font.BOLD, 40));
-			FontMetrics metrics = getFontMetrics(g.getFont());
-			g.drawString("Score: " + applesEaten, (SCREEN_WIDTH - metrics.stringWidth("Score: " + applesEaten)) / 2, 35);
+			g.drawString("1. Oyuncu Skor: " + snake1.applesEaten, 20, 40);
+
+			if (isTwoPlayerMode)
+				g.drawString("2. Oyuncu Skor: " + snake2.applesEaten, 600, 40);
 		}
 		else
-		{
 			gameOver(g);
-		}
+	}
 
+	private void drawSnake(Graphics g, Snake snake, Color headColor, Color bodyColor)
+	{
+		for (int i = 0; i < snake.bodyParts; i++)
+		{
+			if (i == 0)
+			{
+				g.setColor(headColor);
+			}
+			else
+			{
+				g.setColor(bodyColor);
+			}
+			g.fillRect(snake.x[i], snake.y[i], UNIT_SIZE, UNIT_SIZE);
+		}
 	}
 
 	private void spawnApple()
 	{
-		appleX = random.nextInt((int)(SCREEN_WIDTH / UNIT_SIZE)) * UNIT_SIZE;
-		appleY = random.nextInt((int)(SCREEN_HEIGHT / UNIT_SIZE)) * UNIT_SIZE;
-	}
+		apple1X = random.nextInt((int) (SCREEN_WIDTH / UNIT_SIZE)) * UNIT_SIZE;
+		apple1Y = random.nextInt((int) (SCREEN_HEIGHT / UNIT_SIZE)) * UNIT_SIZE;
 
-	private void move()
-	{
-		for (int i = bodyParts; i > 0; i--)
+		if (isTwoPlayerMode)
 		{
-			x[i] = x[i - 1];
-			y[i] = y[i - 1];
-		}
-
-		switch (direction)
-		{
-			case "UP":
-				y[0] = y[0] - UNIT_SIZE;
-				break;
-			case "DOWN":
-				y[0] = y[0] + UNIT_SIZE;
-				break;
-			case "LEFT":
-				x[0] = x[0] - UNIT_SIZE;
-				break;
-			case "RIGHT":
-				x[0] = x[0] + UNIT_SIZE;
-				break;
-		}
-	}
-
-	private void checkApple()
-	{
-		if (x[0] == appleX && y[0] == appleY)
-		{
-			bodyParts++;
-			applesEaten++;
-			spawnApple();
-		}
-	}
-
-	private void checkCollisions()
-	{
-		for (int i = bodyParts; i > 0; i--)
-		{
-			if (x[0] == x[i] && y[0] == y[i]) // yılan kendine çarparsa
-			{
-				gameState = false;
-				timer.stop();
-			}
-
-			// Wrap the snake to the opposite side when it crosses the border
-			if (x[0] < 0) {
-				x[0] = SCREEN_WIDTH - UNIT_SIZE;  // Move to the right edge
-			} else if (x[0] >= SCREEN_WIDTH) {
-				x[0] = 0;  // Move to the left edge
-			}
-
-			if (y[0] < 0) {
-				y[0] = SCREEN_HEIGHT - UNIT_SIZE;  // Move to the bottom edge
-			} else if (y[0] >= SCREEN_HEIGHT) {
-				y[0] = 0;  // Move to the top edge
-			}
+			apple2X = random.nextInt((int) (SCREEN_WIDTH / UNIT_SIZE)) * UNIT_SIZE;
+			apple2Y = random.nextInt((int) (SCREEN_HEIGHT / UNIT_SIZE)) * UNIT_SIZE;
 		}
 	}
 
@@ -154,83 +123,125 @@ public class GamePanel extends JPanel implements ActionListener {
 	{
 		g.setColor(Color.red);
 		g.setFont(new Font("Ink Free", Font.BOLD, 75));
-		FontMetrics metrics = getFontMetrics(g.getFont());
-		g.drawString("Game Over!", (SCREEN_WIDTH - metrics.stringWidth("Game Over!")) / 2, SCREEN_HEIGHT / 2);
+		g.drawString("Oyun Bitti!", 250, 325);
 
 		g.setFont(new Font("Ink Free", Font.BOLD, 40));
-		metrics = getFontMetrics(g.getFont());
-		g.drawString("Score: " + applesEaten, (SCREEN_WIDTH - metrics.stringWidth("Score: " + applesEaten)) / 2, SCREEN_HEIGHT / 2 - 100);
+		g.drawString("Oyuncu1 Skor: " + snake1.applesEaten, 250, 400);
+		if (isTwoPlayerMode)
+		{
+			g.drawString("Oyuncu2 Skor: " + snake2.applesEaten, 250, 450);
+		}
 
-		JButton newGameButton = new JButton("New Game");
-		newGameButton.setFont(new Font("Ink Free", Font.BOLD, 20));
-		newGameButton.setBounds((SCREEN_WIDTH / 2) - 75, SCREEN_HEIGHT / 2 + 50, 150, 50);
+		if (isTwoPlayerMode)
+		{
+
+			String msg;
+			if (snake1.applesEaten > snake2.applesEaten)
+			{
+				msg = "1. Oyuncu Kazandı!";
+			}
+			else if (snake2.applesEaten > snake1.applesEaten)
+			{
+				msg = "2. Oyuncu Kazandı!";
+			}
+			else
+			{
+				msg = "Berabere!";
+			}
+
+			g.setFont(new Font("Ink Free", Font.BOLD, 50));
+			g.drawString(msg, 250, 500);
+		}
+
+		JButton newGameButton = new JButton("Yeni Oyun");
+		newGameButton.setBounds(300, 550, 200, 50);
+		newGameButton.addActionListener(e -> restartGame());
 
 		this.setLayout(null);
 		this.add(newGameButton);
-		this.repaint();
-
-		newGameButton.addActionListener(e -> restartGame());
 	}
 
 	private void restartGame()
 	{
-		bodyParts = 6;
-		applesEaten = 0;
-		direction = "RIGHT";
+		snake1 = new Snake(GAME_UNITS, UNIT_SIZE, "RIGHT");
+		if (isTwoPlayerMode)
+			snake2 = new Snake(GAME_UNITS, UNIT_SIZE, "LEFT");
+		else
+			snake2 = null;
+
 		gameState = true;
-
-		// Clear the snake's position
-		for (int i = 0; i < bodyParts; i++) {
-			x[i] = 0;
-			y[i] = 0;
-		}
-
-		spawnApple(); // Spawn a new apple
-		this.removeAll(); // Remove all components (including button)
+		this.removeAll();
 		this.revalidate();
 		this.repaint();
-
-		// Restart the game loop
 		timer.start();
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent e) {
+	public void actionPerformed(ActionEvent e)
+	{
+		if (gameState) {
+			// Yılanların hareketi
+			snake1.move();
+			if (isTwoPlayerMode) {
+				snake2.move();
+			}
 
-		if (gameState)
-		{
-			move();
-			checkApple();
-			checkCollisions();
+			// yılanlar elmaya temas etti mi?
+			if (snake1.checkApple(apple1X, apple1Y)) {
+				spawnApple();
+			}
+			if (isTwoPlayerMode && snake2.checkApple(apple1X, apple1Y)) {
+				spawnApple();
+			}
+
+			// yılanlar çarpışma kontrol
+			boolean snake1Collision = snake1.checkCollisions(SCREEN_WIDTH, SCREEN_HEIGHT, snake2);
+			boolean snake2Collision = isTwoPlayerMode && snake2.checkCollisions(SCREEN_WIDTH, SCREEN_HEIGHT, snake1);
+
+			if (snake1Collision || snake2Collision)
+			{
+				gameState = false;
+				timer.stop();
+			}
+			repaint();
 		}
-		repaint();
 	}
-
-	public class MyKeyAdapter extends KeyAdapter {
-
+	public class MyKeyAdapter extends KeyAdapter
+	{
 		@Override
 		public void keyPressed(KeyEvent e)
 		{
 			switch (e.getKeyCode())
 			{
+				// 1. oyuncu kontroller
 				case KeyEvent.VK_LEFT:
-					if (!direction.equals("RIGHT"))
-						direction = "LEFT";
+					if (!snake1.direction.equals("RIGHT")) snake1.direction = "LEFT";
 					break;
 				case KeyEvent.VK_RIGHT:
-					if (!direction.equals("LEFT"))
-						direction = "RIGHT";
+					if (!snake1.direction.equals("LEFT")) snake1.direction = "RIGHT";
 					break;
 				case KeyEvent.VK_UP:
-					if (!direction.equals("DOWN"))
-						direction = "UP";
+					if (!snake1.direction.equals("DOWN")) snake1.direction = "UP";
 					break;
 				case KeyEvent.VK_DOWN:
-					if (!direction.equals("UP"))
-						direction = "DOWN";
+					if (!snake1.direction.equals("UP")) snake1.direction = "DOWN";
+					break;
+
+				// 2. oyuncu kontroller
+				case KeyEvent.VK_A:
+					if (isTwoPlayerMode && !snake2.direction.equals("RIGHT")) snake2.direction = "LEFT";
+					break;
+				case KeyEvent.VK_D:
+					if (isTwoPlayerMode && !snake2.direction.equals("LEFT")) snake2.direction = "RIGHT";
+					break;
+				case KeyEvent.VK_W:
+					if (isTwoPlayerMode && !snake2.direction.equals("DOWN")) snake2.direction = "UP";
+					break;
+				case KeyEvent.VK_S:
+					if (isTwoPlayerMode && !snake2.direction.equals("UP")) snake2.direction = "DOWN";
 					break;
 			}
 		}
-
 	}
 }
+

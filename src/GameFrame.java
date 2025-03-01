@@ -5,7 +5,7 @@ public class GameFrame extends JFrame {
 
 	public GameFrame() throws HeadlessException {
 
-		GamePanel gamePanel = new GamePanel();
+		GamePanel gamePanel = new GamePanel(false);
 
 		this.add(gamePanel);
 		this.setTitle("Snake"); // Açılacak pencerenin ismi
