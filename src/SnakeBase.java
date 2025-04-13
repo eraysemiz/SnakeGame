@@ -1,139 +1,91 @@
 public abstract class SnakeBase {
-	// Private fields to encapsulate the internal state
-	private int gameUnits;
-	protected int unitSize;
-	protected int bodyParts = 4;
-	protected int applesEaten = 0;
-	protected String direction;
-	protected final int[] x;
-	protected final int[] y;
+	// Oyun birimleri, her bir yılan parçası ve yön gibi temel özellikleri saklayan özel alanlar
+	protected int bodyParts = 4; // Yılanın başlangıç uzunluğu
+	protected int applesEaten = 0; // Yılanın yediği elma sayısı
+	protected String direction; // Yılanın yönü (UP, DOWN, LEFT, RIGHT)
+	protected final int[] x; // Yılanın x koordinatları (başlangıç noktası ve diğer parçalar)
+	protected final int[] y; // Yılanın y koordinatları (başlangıç noktası ve diğer parçalar)
 
-	// Constructor to initialize the snake
-	public SnakeBase(int gameUnits, int unitSize, String direction) {
-		this.gameUnits = gameUnits;
-		this.unitSize = unitSize;
+	// Constructor: Yılanın temel özelliklerini başlatan yapıcı metod
+	public SnakeBase(String direction) {
 		this.direction = direction;
-		x = new int[gameUnits];
-		y = new int[gameUnits];
+		x = new int[GamePanel.GAME_UNITS]; // Yılanın x koordinatlarını saklayan dizi
+		y = new int[GamePanel.GAME_UNITS]; // Yılanın y koordinatlarını saklayan dizi
 	}
 
-	// Abstract method to be implemented by subclasses
+	// Alt sınıflar tarafından implemente edilecek soyut metod
 	public abstract void move();
 
-	public void moveAI(int appleX, int appleY)
-	{
-
-	}
-
-	// Getter and setter methods for bodyParts
+	// Body parts (yılanın uzunluğu) için getter ve setter metodları
 	public int getBodyParts() {
 		return bodyParts;
 	}
 
-	public void setBodyParts(int bodyParts) {
-		if (bodyParts >= 0) {
-			this.bodyParts = bodyParts;
-		}
-	}
-
-	// Getter and setter methods for applesEaten
+	// Yılanın yediği elma sayısı için getter ve setter metodları
 	public int getApplesEaten() {
 		return applesEaten;
 	}
 
-	public void setApplesEaten(int applesEaten) {
-		if (applesEaten >= 0) {
-			this.applesEaten = applesEaten;
-		}
-	}
-
-	// Getter for direction (assuming only reading direction is needed)
-	public String getDirection() {
-		return direction;
-	}
-
-	// Setter for direction
 	public void setDirection(String direction) {
 		if (direction != null && (direction.equals("UP") || direction.equals("DOWN") || direction.equals("LEFT") || direction.equals("RIGHT"))) {
-			this.direction = direction;
+			this.direction = direction.toUpperCase(); // Yönü geçerli bir değerle ayarla
 		}
 	}
 
-	// Getter for x-coordinate
+	// x koordinatını almak için getter metod
 	public int getX(int index) {
-		if (index >= 0 && index < gameUnits) {
-			return x[index];
+		if (index >= 0 && index < GamePanel.GAME_UNITS) {
+			return x[index]; // Geçerli bir dizinle x koordinatını döndür
 		}
-		return -1;  // Invalid index
+		return -1;  // Geçersiz indeks
 	}
 
-	// Setter for x-coordinate
-	public void setX(int index, int value) {
-		if (index >= 0 && index < gameUnits) {
-			x[index] = value;
-		}
-	}
 
-	// Getter for y-coordinate
+	// y koordinatını almak için getter metod
 	public int getY(int index) {
-		if (index >= 0 && index < gameUnits) {
-			return y[index];
+		if (index >= 0 && index < GamePanel.GAME_UNITS) {
+			return y[index]; // Geçerli bir dizinle y koordinatını döndür
 		}
-		return -1;  // Invalid index
+		return -1;  // Geçersiz indeks
 	}
 
-	// Setter for y-coordinate
-	public void setY(int index, int value) {
-		if (index >= 0 && index < gameUnits) {
-			y[index] = value;
-		}
-	}
-
-	// Methods for checking apple and collision logic
+	// Elma kontrolü ve yılanın büyümesi
 	public boolean checkApple(int appleX, int appleY) {
-		if (x[0] == appleX && y[0] == appleY) {
-			bodyParts++;
-			applesEaten++;
-			return true;
+		if (x[0] == appleX && y[0] == appleY) {  // Eğer baş elmayla çarpıştıysa
+			bodyParts++; // Yılanın uzunluğunu bir artır
+			applesEaten++; // Yılanın yediği elma sayısını artır
+			return true;  // Elma yendi
 		}
-		return false;
+		return false;  // Elma yenmedi
 	}
 
+	// Çarpışma kontrolü (yılan kendine mi çarpıyor, diğer yılanla mı çarpışıyor veya sınırda mı)
 	public int checkCollisions(int screenWidth, int screenHeight, SnakeBase otherSnake) {
 		// Yılan kendine çarpıyor mu?
-		for (int i = 1; i < bodyParts; i++)
-		{
-			if (x[0] == x[i] && y[0] == y[i])
-			{
+		for (int i = 1; i < bodyParts; i++) {
+			if (x[0] == x[i] && y[0] == y[i]) {
 				System.out.println("Self-collision detected at: (" + x[0] + "," + y[0] + ")");
-				return 1;
+				return 1; // Kendine çarptı
 			}
 		}
 
 		// Yılan diğer yılana çarpıyor mu?
 		if (otherSnake != null) {
 			for (int i = 0; i < otherSnake.bodyParts; i++) {
-				if (x[0] == otherSnake.x[i] && y[0] == otherSnake.y[i])
-				{
+				if (x[0] == otherSnake.x[i] && y[0] == otherSnake.y[i]) {
 					System.out.println("Collision detected between snakes at: " + x[0] + "," + y[0]);
-					return 2;
+					return 2; // Diğer yılanla çarpıştı
 				}
 			}
 		}
 
-		// Yılan köşelere çarparsa öteki tarafa ışınla
-		if (x[0] < 0) {
-			x[0] = screenWidth - unitSize;
-		} else if (x[0] >= screenWidth) {
-			x[0] = 0;
+		// Sınırlara çarpma kontrolü
+		if (x[0] < 25 || x[0] >= screenWidth - 25 || y[0] < 25 || y[0] >= screenHeight - 25) {
+			System.out.println("Wall collision detected at: (" + x[0] + "," + y[0] + ")");
+			return 3; // Sınıra çarptı
 		}
 
-		if (y[0] < 0) {
-			y[0] = screenHeight - unitSize;
-		} else if (y[0] >= screenHeight) {
-			y[0] = 0;
-		}
-
-		return 0;
+		return 0; // Çarpışma yok
 	}
+
 }

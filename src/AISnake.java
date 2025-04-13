@@ -1,140 +1,115 @@
 public class AISnake extends SnakeBase {
+	private final PlayerSnake playerSnake;
+	private int appleX, appleY;
 
-	private int moveCounter = 0; // Used to limit the frequency of direction changes
-	private static final int MOVE_FREQUENCY = 5; // Number of moves before the AI makes a decision
-	private static final double MISTAKE_CHANCE = 0.2; // 20% chance to make a random mistake in direction
+	public AISnake(String direction, PlayerSnake playerSnake) {
+		super(direction);
+		this.playerSnake = playerSnake;
+	}
 
-	public AISnake(int gameUnits, int unitSize, String direction) {
-		super(gameUnits, unitSize, direction);
+	public void moveAI(int appleX, int appleY) {
+		this.appleX = appleX;
+		this.appleY = appleY;
+		move();	// hareket et
 	}
 
 	@Override
 	public void move() {
-		// Move the body as usual
-		for (int i = bodyParts; i > 0; i--) {
-			x[i] = x[i - 1];
-			y[i] = y[i - 1];
+		int dx = appleX - getX(0); // Elma ile yılanın başı arasındaki X eksenindeki mesafe
+		int dy = appleY - getY(0); // Elma ile yılanın başı arasındaki Y eksenindeki mesafe
+
+		String newDirection = direction;
+
+		/*
+			elma ile yılanın başı arasındaki mesafenin mutlak değerini alıp, elmanın dikeyde mi
+			yoksa yatayda mı daha uzakta olduğunu bul ve uzakta olan yöne hareket et
+		 */
+		if (Math.abs(dx) > Math.abs(dy)) // Eğer yatay mesafe dikeyden fazlaysa, yatay hareketi tercih et
+		{
+			if (dx > 0 && !direction.equals("LEFT")) // Elma sağda ise sağa dön
+				newDirection = "RIGHT";
+			else if (dx < 0 && !direction.equals("RIGHT"))	// Elma solda ise sola dön
+				newDirection = "LEFT";
+		}
+		else	// Eğer dikey mesafe yataydan fazlaysa, dikey hareketi tercih et
+		{
+			if (dy > 0 && !direction.equals("UP"))	// Elma aşağıda ise aşağı dön
+				newDirection = "DOWN";
+			else if (dy < 0 && !direction.equals("DOWN"))	// Elma yukarıda ise yukarı dön
+				newDirection = "UP";
 		}
 
-		// Move the snake head in the chosen direction
-		switch (direction) {
-			case "UP":
-				y[0] = y[0] - unitSize;
-				break;
-			case "DOWN":
-				y[0] = y[0] + unitSize;
-				break;
-			case "LEFT":
-				x[0] = x[0] - unitSize;
-				break;
-			case "RIGHT":
-				x[0] = x[0] + unitSize;
-				break;
+		// Eğer belirlenen yeni yön çarpışmaya neden olmayacaksa, yönü değiştir
+		if (!willCollideWith(newDirection, playerSnake)) {
+			setDirection(newDirection);
+		} else {
+			avoidCollision();	// Aksi halde çarpışmadan kaçmak için alternatif yön belirle
 		}
-	}
 
-	@Override
-	public void moveAI(int appleX, int appleY) {
-		// Shift body forward
+		// Gövde parçalarını bir öncekinin yerine kaydır
 		for (int i = bodyParts - 1; i > 0; i--) {
 			x[i] = x[i - 1];
 			y[i] = y[i - 1];
 		}
 
-		// Increase move counter
-		moveCounter++;
-
-		// Change direction every MOVE_FREQUENCY steps, and sometimes make mistakes
-		if (moveCounter >= MOVE_FREQUENCY) {
-			moveCounter = 0; // Reset counter
-
-			// Random chance for the AI to make a mistake or not follow the apple directly
-			if (Math.random() < MISTAKE_CHANCE) {
-				randomizeDirection(); // Make a random move instead of going towards the apple
-			} else {
-				moveTowardsApple(appleX, appleY); // Normal behavior
-			}
-		}
-
-		// Move the head in the chosen direction
+		// Kafayı mevcut yöne göre hareket ettir
 		switch (direction) {
 			case "UP":
-				y[0] -= unitSize;
+				y[0] -= GamePanel.UNIT_SIZE;
 				break;
 			case "DOWN":
-				y[0] += unitSize;
+				y[0] += GamePanel.UNIT_SIZE;
 				break;
 			case "LEFT":
-				x[0] -= unitSize;
+				x[0] -= GamePanel.UNIT_SIZE;
 				break;
 			case "RIGHT":
-				x[0] += unitSize;
+				x[0] += GamePanel.UNIT_SIZE;
 				break;
 		}
 	}
 
-	// Method to make the AI choose a random direction (even if it might not be the most optimal)
-	private void randomizeDirection() {
-		String[] possibleDirections = {"UP", "DOWN", "LEFT", "RIGHT"};
-		String randomDirection = possibleDirections[(int) (Math.random() * possibleDirections.length)];
-
-		// Ensure it doesn't reverse the current direction
-		if (direction.equals("UP") && !randomDirection.equals("DOWN")) {
-			setDirection(randomDirection);
-		} else if (direction.equals("DOWN") && !randomDirection.equals("UP")) {
-			setDirection(randomDirection);
-		} else if (direction.equals("LEFT") && !randomDirection.equals("RIGHT")) {
-			setDirection(randomDirection);
-		} else if (direction.equals("RIGHT") && !randomDirection.equals("LEFT")) {
-			setDirection(randomDirection);
-		}
-	}
-
-	public void moveTowardsApple(int appleX, int appleY) {
-		int dx = appleX - getX(0);
-		int dy = appleY - getY(0);
-
-		// Keep the current direction as default
-		String newDirection = direction;
-
-		// Prioritize horizontal movement if it's the greater distance
-		if (Math.abs(dx) > Math.abs(dy)) {
-			if (dx > 0 && !direction.equals("LEFT")) {
-				newDirection = "RIGHT";
-			} else if (dx < 0 && !direction.equals("RIGHT")) {
-				newDirection = "LEFT";
-			}
-		} else {
-			if (dy > 0 && !direction.equals("UP")) {
-				newDirection = "DOWN";
-			} else if (dy < 0 && !direction.equals("DOWN")) {
-				newDirection = "UP";
-			}
-		}
-
-		// Apply the new safe direction
-		if (!willCollideWithSelf(newDirection)) {
-			setDirection(newDirection);
-		}
-	}
-
-	private boolean willCollideWithSelf(String nextDirection) {
+	private boolean willCollideWith(String nextDirection, PlayerSnake other) {
+		// Yılanın başının mevcut konumunu al
 		int nextX = x[0];
 		int nextY = y[0];
 
+		// Belirtilen yön doğrultusunda bir sonraki konumu hesapla
 		switch (nextDirection) {
-			case "UP": nextY -= unitSize; break;
-			case "DOWN": nextY += unitSize; break;
-			case "LEFT": nextX -= unitSize; break;
-			case "RIGHT": nextX += unitSize; break;
+			case "UP":    nextY -= GamePanel.UNIT_SIZE; break;   // Yukarı hareket -> Y azalır
+			case "DOWN":  nextY += GamePanel.UNIT_SIZE; break;   // Aşağı hareket -> Y artar
+			case "LEFT":  nextX -= GamePanel.UNIT_SIZE; break;   // Sola hareket -> X azalır
+			case "RIGHT": nextX += GamePanel.UNIT_SIZE; break;   // Sağa hareket -> X artar
 		}
 
-		// Check if new head position overlaps with body
+		// Ekran sınırlarına çarpma kontrolü (25 birim kenar boşluğu varsayılmış)
+		if (nextX < 25 || nextX >= GamePanel.SCREEN_WIDTH - 25 ||
+				nextY < 25 || nextY >= GamePanel.SCREEN_HEIGHT - 25) {
+			return true; // Sınırın dışına çıkılıyorsa çarpışma olur
+		}
+
+		// Kendi gövdesiyle çarpışma kontrolü (baş kısmı hariç, i = 1'den başlar)
 		for (int i = 1; i < bodyParts; i++) {
-			if (x[i] == nextX && y[i] == nextY) {
-				return true; // Collision detected
+			if (x[i] == nextX && y[i] == nextY)
+				return true; // Kendi gövdesiyle çarpışma varsa true döndür
+		}
+
+		// Diğer yılanla çarpışma kontrolü (diğer yılanın tüm parçaları kontrol edilir)
+		for (int i = 0; i < other.getBodyParts(); i++) {
+			if (other.getX(i) == nextX && other.getY(i) == nextY)
+				return true; // Diğer yılanla çarpışma varsa true döndür
+		}
+
+		return false;			// Hiçbir çarpışma yoksa false döndür
+	}
+
+	private void avoidCollision() {
+		String[] directions = {"UP", "DOWN", "LEFT", "RIGHT"};
+		for (String dir : directions) {
+			if (!willCollideWith(dir, playerSnake)) {
+				setDirection(dir);
+				return;
 			}
 		}
-		return false; // Safe move
 	}
 }

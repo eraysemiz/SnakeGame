@@ -1,7 +1,7 @@
 public class PlayerSnake extends SnakeBase
 {
-	public PlayerSnake(int gameUnits, int unitSize, String direction) {
-		super(gameUnits, unitSize, direction);
+	public PlayerSnake(String direction) {
+		super(direction);
 	}
 
 	@Override
@@ -15,16 +15,16 @@ public class PlayerSnake extends SnakeBase
 		switch (direction)
 		{
 			case "UP":
-				y[0] = y[0] - unitSize;
+				y[0] = y[0] - GamePanel.UNIT_SIZE;
 				break;
 			case "DOWN":
-				y[0] = y[0] + unitSize;
+				y[0] = y[0] + GamePanel.UNIT_SIZE;
 				break;
 			case "LEFT":
-				x[0] = x[0] - unitSize;
+				x[0] = x[0] - GamePanel.UNIT_SIZE;
 				break;
 			case "RIGHT":
-				x[0] = x[0] + unitSize;
+				x[0] = x[0] + GamePanel.UNIT_SIZE;
 				break;
 		}
 	}
